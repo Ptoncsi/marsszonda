@@ -4,6 +4,8 @@
 #include <DHT.h>
 #include <DHT_U.h>
 #include <Arduino.h>
+#include <SPI.h>
+#include <SD.h>
 
 #define DHTPIN 4
 #define DHTTYPE DHT11
@@ -16,6 +18,10 @@
        ADDRESS_2               0x72
        ADDRESS_3               0x73
 */
+sd.begin();
+fo = SD.open("adatok.csv",FILE_APPEND);
+SD.close(fo);
+
 DFRobot_OzoneSensor Ozone;
 
 Adafruit_BME280 bme; // use I2C interface
@@ -35,17 +41,21 @@ void readBME();
 ///CH4, CO, Ozone Gas Sensors
 void setup(){
     Serial.begin(9600); //Set serial baud rate to 9600 bps
-    Serial.println("CH4;CO;O3;CO2;˚C;hum%;hPa");
+    Serial.println("CH4;CO;O3;CO2;C;hum%;hPa");
+    fo.write("CH4;CO;O3;CO2;C;hum%;hPa\n");
     setup_CH4_CO_Ozone();
     setup_CO2_sensor();
     setup_bme();
 }
 
 void loop(){
+    fo = SD.open("adatok.csv",FILE_APPEND);
     read_CH4_CO_Ozone();
     read_CO2_sensor();
     readBME();
     Serial.println();
+    fo.write("\n");
+    SD.close(fo);
     delay(1000);
 }
 
@@ -66,6 +76,7 @@ void setup_bme() {
     if (!bme.begin(0x76,&Wire)) {
     #ifdef SERIAL_DEBUG
     Serial.println("nincs BMP");
+    fo.write("nincs BMP\n");
     #endif
   }
 }
@@ -79,11 +90,18 @@ void read_CH4_CO_Ozone()
   Serial.println(" PPM.");*/
     Serial.print(val0,DEC);
     Serial.print(";");
+
+    fo.print(val0,DEC);
+    fo.print(";");
+
     int val1;
     val1=analogRead(1);//Read CO value from analog 1
     //Serial.print("CO concentration is ");
     Serial.print(val1,DEC);//Print value to serial port
     Serial.print(";");
+
+    fo.print(val1,DEC);
+    fo.print(";");
     //Serial.println(" PPM.");
     /*   Smooth data collection
        COLLECT_NUMBER                    // The collection range is 1-100
@@ -92,6 +110,9 @@ void read_CH4_CO_Ozone()
     //Serial.print("Ozone concentration is ");
     Serial.print(ozoneConcentration);
     Serial.print(";");
+
+    fo.print(ozoneConcentration);
+    fo.print(";");
     //Serial.println(" PPB.");
     //Serial.println("");
     //delay(5000);
@@ -112,10 +133,12 @@ void read_CO2_sensor(){
     if(voltage == 0)
     {
         Serial.println("Fault");
+        fo.println("CO2 hiba");
     }
     else if(voltage < 400)
     {
         Serial.println("preheating");
+        fo.println("preheating");
     }
     else
     {
@@ -129,6 +152,9 @@ void read_CO2_sensor(){
         //Serial.print("CO2 concentration is ");
         Serial.print(concentration);
         Serial.print(";");
+
+        fo.print(concentration);
+        fo.print(";");
         //Serial.println(" PPM");
         //Serial.println("");
     }
@@ -178,4 +204,5 @@ void readBME() {
     toReturn += ";";
 
     Serial.print(toReturn);
+    fo.print(toReturn);
 }
